@@ -23,12 +23,13 @@ const sketch = (p) => {
   let mic;
   let micLevel;
   let trigger = 0.1;
+  let canTrigger = true;
   let currentMovie;
   let currentImage;
   let ratio;
 
   let idleVideo;
-  
+  let help = false;
   p.setup = () => {
     // Create the canvas
     p.createCanvas(p.windowWidth, p.windowHeight);
@@ -90,13 +91,12 @@ const sketch = (p) => {
   p.draw = () => {
     p.background(0);
     
-    p.fill(255);    
-    console.log(micLevel);
+    p.fill(255);        
     if (micLevel > trigger) {
-      p.mousePressed();
+      if(canTrigger) triggerAction();
       p.fill(255,0,0);
     }
-    p.rect(0, p.height - 5,  micLevel * p.width, p.height);
+    if(help) p.rect(0, p.height - 5,  micLevel * p.width, p.height);
 
     switch (state) {
       case IDLE:  
@@ -121,31 +121,51 @@ const sketch = (p) => {
         break;
       case IMAGE:
         ratio = currentImage.width / currentImage.height;
+        console.log(ratio);
+        let w = ratio  <= 1.0 ? p.height*ratio : p.width;
+        let h = ratio  <= 1.0 ? p.height : p.width/ratio;
         p.image(
           currentImage,
           p.width / 2,
           p.height / 2,
-          p.width,
-          p.width / ratio
+          w,
+          h
+          // p.width, 
+          // p.width / ratio
+          
+
         );
         break;
     }
   };
 
   let lastTimeout;
-  p.mousePressed = () => {
-    if (state !== IDLE) return;
-    console.log("next");
+  p.mousePressed = () => {    
+    if(canTrigger) triggerAction();    
+  };
+
+  p.windowResized = () => {
+    p.resizeCanvas(p.windowWidth, p.windowHeight);
+    
+  };
+
+  p.keyPressed = (keyevent) => {
+    if(keyevent.key == 'h') help = !help;
+  };
+
+  triggerAction = function() {
+    console.log('trigger');
+    setTimeout(() => {
+      console.log('execute');
+      if (state !== IDLE) return;
     if (Math.random() > 0.5) {
       setImage();
     } else {
       setMovie();
     }
-  };
-
-  p.windowResized = () => {
-    p.resizeCanvas(p.windowWidth, p.windowHeight);
-  };
+    }, 3000); 
+    canTrigger = false;      
+  }
 
   setMovie = function () {
     if (currentMovie) {
@@ -158,6 +178,7 @@ const sketch = (p) => {
 
     currentMovie.elt.onended = () => {
       state = IDLE;
+      canTrigger = true;
     };
   };
   setImage = function () {
@@ -165,6 +186,7 @@ const sketch = (p) => {
     state = IMAGE;
     lastTimeout = setTimeout(() => {
       state = IDLE;
+      canTrigger = true;
     }, 10E3);
   };
 };
